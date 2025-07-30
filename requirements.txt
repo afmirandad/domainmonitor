@@ -1,0 +1,6 @@
+requests
+dnspython
+yagmail
+sqlalchemy
+pymysql
+python-dotenv
