@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     wget \
     unzip \
+    nmap \
     && apt-get clean
 
 ENV GO_VERSION=1.21.3

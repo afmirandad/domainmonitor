@@ -4,3 +4,4 @@ yagmail
 sqlalchemy
 pymysql
 python-dotenv
+python-nmap
