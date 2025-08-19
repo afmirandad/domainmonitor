@@ -14,12 +14,30 @@ from datetime import datetime, UTC
 from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, DateTime, insert, select, Text, text
 from email_notifier import EmailNotifier
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ .env file loaded successfully")
+except ImportError:
+    print("⚠️ python-dotenv not installed, using system environment variables only")
+except Exception as e:
+    print(f"⚠️ Could not load .env file: {e}")
+
 # Disable SSL warnings for the HTTP fallback checks
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
+
+try:
+    from teams_notifier import TeamsNotifier
+    TEAMS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Teams notifier not available: {e}")
+    TeamsNotifier = None
+    TEAMS_AVAILABLE = False
 
 # Force flush stdout/stderr for Railway
 import sys
@@ -32,6 +50,7 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASSWORD")
 EMAIL_TO = os.getenv("EMAIL_TO")
 DOMAINS_ENV = os.getenv("DOMAINS")
+TEAMS_WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL")
 
 # DB setup
 engine = create_engine(MYSQL_URL)
@@ -693,6 +712,12 @@ def main():
     logger.info(f"📡 Will process {len(domains)} domains: {domains}")
 
     notifier = EmailNotifier(EMAIL_USER, EMAIL_PASS, EMAIL_TO)
+    teams_notifier = TeamsNotifier(TEAMS_WEBHOOK_URL) if (TEAMS_AVAILABLE and TEAMS_WEBHOOK_URL) else None
+    
+    if teams_notifier:
+        logger.info("✅ Teams notifications enabled")
+    else:
+        logger.info("⚠️ Teams notifications disabled (no webhook URL)")
 
     for i, domain in enumerate(domains, 1):
         logger.info(f"\n{'='*60}")
@@ -855,6 +880,52 @@ def main():
                 # Send enhanced notification
                 logger.info("📤 Sending comprehensive notification with changes")
                 notifier.send_enhanced(domain, notification_message)
+                
+                # Send Teams notification if configured
+                if teams_notifier:
+                    logger.info("📤 Sending Teams notifications...")
+                    
+                    # Send summary report to Teams
+                    teams_domains_data = []
+                    for subdomain, scan_data in all_scan_results:
+                        if scan_data.get('open_ports'):
+                            teams_domains_data.append({
+                                'domain': subdomain,
+                                'days_left': 365  # Port scanning doesn't have expiration data
+                            })
+                    
+                    if teams_domains_data:
+                        teams_notifier.send_summary_report(teams_domains_data[:10])  # Send top 10
+                    
+                    # Send individual port scan alerts for significant changes
+                    for change in port_changes[:5]:  # Limit to first 5 changes
+                        if change['newly_opened']:
+                            open_ports_formatted = [
+                                {"port": port, "protocol": "tcp"} 
+                                for port in change['newly_opened']
+                            ]
+                            closed_ports_formatted = [
+                                {"port": port, "protocol": "tcp"} 
+                                for port in change['newly_closed']
+                            ]
+                            teams_notifier.send_port_scan_alert(
+                                change['subdomain'], 
+                                open_ports_formatted, 
+                                closed_ports_formatted
+                            )
+                    
+                    # Send alert for new subdomains with open ports
+                    for subdomain, scan_data in new_subdomains[:3]:  # Limit to first 3
+                        if scan_data.get('open_ports'):
+                            open_ports_formatted = [
+                                {"port": port, "protocol": "tcp"} 
+                                for port in scan_data['open_ports']
+                            ]
+                            teams_notifier.send_port_scan_alert(
+                                subdomain, 
+                                open_ports_formatted, 
+                                []
+                            )
                     
                 logger.info(f"✅ Completed processing for {domain}")
             else:

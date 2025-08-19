@@ -24,7 +24,7 @@ RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 
 WORKDIR /app
 
-COPY entrypoint.py email_notifier.py requirements.txt ./
+COPY entrypoint.py email_notifier.py teams_notifier.py requirements.txt ./
 
 RUN pip install --no-cache-dir -r requirements.txt
 
