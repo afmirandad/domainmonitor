@@ -2,6 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, DateTime, Text
 from datetime import datetime, UTC
 from app.config.database import metadata
 
+
 subdomains_table = Table(
     'subdomains', metadata,
     Column('id', Integer, primary_key=True),
@@ -11,7 +12,8 @@ subdomains_table = Table(
     Column('ip_address', String(45)),
     Column('is_active', String(10)),
     Column('open_ports', Text),
-    Column('services', Text),
+    Column('services_desc', Text),
+    Column('port_state', String(32)),
     Column('last_scanned', DateTime)
 )
 

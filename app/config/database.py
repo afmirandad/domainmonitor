@@ -9,6 +9,8 @@ metadata = MetaData()
 def ensure_database_schema():
 	"""Ensure the database schema is up to date with all required columns"""
 	logger.info("🔧 Checking and updating database schema...")
+	# Always try to create the table first
+	metadata.create_all(engine)
 	try:
 		with engine.connect() as conn:
 			# Check if new columns exist and add them if they don't
@@ -29,13 +31,12 @@ def ensure_database_schema():
 				except Exception as e:
 					if "Duplicate column name" in str(e) or "already exists" in str(e):
 						logger.info(f"ℹ️ Column {column_name} already exists")
+					elif "doesn't exist" in str(e) or "does not exist" in str(e):
+						logger.warning(f"⚠️ Table does not exist when adding column {column_name}, skipping column addition.")
 					else:
 						logger.warning(f"⚠️ Could not add column {column_name}: {e}")
 			logger.info("✅ Database schema check completed")
 	except Exception as e:
 		logger.error(f"❌ Database schema update failed: {e}")
-		# Continue anyway - the table creation below will handle it
-	# Create tables (this will create the table if it doesn't exist)
-	metadata.create_all(engine)
 
 __all__ = ["engine", "metadata"]

@@ -2,6 +2,9 @@ requests
 dnspython
 yagmail
 sqlalchemy
+mysqlclient
 pymysql
 python-dotenv
 python-nmap
+pandas
+tabulate
