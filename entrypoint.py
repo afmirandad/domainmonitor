@@ -897,36 +897,53 @@ def main():
                     if teams_domains_data:
                         teams_notifier.send_summary_report(teams_domains_data[:10])  # Send top 10
                     
-                    # Send individual port scan alerts for significant changes
-                    for change in port_changes[:5]:  # Limit to first 5 changes
-                        if change['newly_opened']:
-                            open_ports_formatted = [
-                                {"port": port, "protocol": "tcp"} 
-                                for port in change['newly_opened']
-                            ]
-                            closed_ports_formatted = [
-                                {"port": port, "protocol": "tcp"} 
-                                for port in change['newly_closed']
-                            ]
-                            teams_notifier.send_port_scan_alert(
-                                change['subdomain'], 
-                                open_ports_formatted, 
-                                closed_ports_formatted
+                    # Send tabla resumen de cambios de puertos
+                    if port_changes:
+                        table_rows = []
+                        for change in port_changes:
+                            subdomain = change['subdomain']
+                            old_ports = ', '.join(map(str, change['old_ports'])) if change['old_ports'] else '-'
+                            new_ports = ', '.join(map(str, change['new_ports'])) if change['new_ports'] else '-'
+                            newly_opened = ', '.join(map(str, change['newly_opened'])) if change['newly_opened'] else '-'
+                            newly_closed = ', '.join(map(str, change['newly_closed'])) if change['newly_closed'] else '-'
+                            table_rows.append(f"| `{subdomain}` | `{old_ports}` | `{new_ports}` | `{newly_opened}` | `{newly_closed}` |")
+
+                        table_header = (
+                            "| Subdomain | Old Ports | New Ports | Newly Opened | Newly Closed |\n"
+                            "|-----------|-----------|-----------|--------------|--------------|"
+                        )
+                        table = table_header + "\n" + "\n".join(table_rows)
+
+                        teams_message = {
+                            "@type": "MessageCard",
+                            "@context": "http://schema.org/extensions",
+                            "themeColor": "FFA500",
+                            "summary": f"Port Changes Detected for {domain}",
+                            "title": f"🔄 Port Changes Detected for {domain}",
+                            "sections": [{
+                                "activityTitle": f"🔄 Port Changes Summary ({len(port_changes)} changes)",
+                                "markdown": True,
+                                "text": (
+                                    f"Se detectaron cambios en los puertos de los siguientes subdominios:\n\n"
+                                    f"{table}\n\n"
+                                    f"_Revisa los cambios y toma acción si es necesario._"
+                                )
+                            }]
+                        }
+
+                        try:
+                            import requests
+                            response = requests.post(
+                                TEAMS_WEBHOOK_URL,
+                                headers={'Content-Type': 'application/json'},
+                                json=teams_message,
+                                timeout=10
                             )
-                    
-                    # Send alert for new subdomains with open ports
-                    for subdomain, scan_data in new_subdomains[:3]:  # Limit to first 3
-                        if scan_data.get('open_ports'):
-                            open_ports_formatted = [
-                                {"port": port, "protocol": "tcp"} 
-                                for port in scan_data['open_ports']
-                            ]
-                            teams_notifier.send_port_scan_alert(
-                                subdomain, 
-                                open_ports_formatted, 
-                                []
-                            )
-                    
+                            response.raise_for_status()
+                            logger.info("✅ Teams summary table sent successfully")
+                        except Exception as e:
+                            logger.error(f"❌ Error sending Teams summary table: {e}")
+                
                 logger.info(f"✅ Completed processing for {domain}")
             else:
                 logger.info(f"ℹ️ No new subdomains or port changes for {domain} - no notification sent")
