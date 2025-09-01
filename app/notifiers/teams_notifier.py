@@ -44,17 +44,19 @@ class TeamsNotifier:
             logger.warning("Teams webhook URL not configured.")
             return
         table_header = (
-            "| Subdomain | Old Ports | New Ports | Newly Opened | Newly Closed |\n"
-            "|-----------|-----------|-----------|--------------|--------------|"
+            "| Subdomain | Port | New Status |\n"
+            "|-----------|------|------------|"
         )
         table_rows = []
         for change in port_changes:
             subdomain = change['subdomain']
-            old_ports = ', '.join(map(str, change['old_ports'])) if change['old_ports'] else '-'
-            new_ports = ', '.join(map(str, change['new_ports'])) if change['new_ports'] else '-'
-            newly_opened = ', '.join(map(str, change['newly_opened'])) if change['newly_opened'] else '-'
-            newly_closed = ', '.join(map(str, change['newly_closed'])) if change['newly_closed'] else '-'
-            table_rows.append(f"| `{subdomain}` | `{old_ports}` | `{new_ports}` | `{newly_opened}` | `{newly_closed}` |")
+            # For each port that changed, show its new status
+            for port in change.get('newly_opened', []):
+                table_rows.append(f"| `{subdomain}` | `{port}` | `open` |")
+            for port in change.get('newly_closed', []):
+                table_rows.append(f"| `{subdomain}` | `{port}` | `closed` |")
+        if not table_rows:
+            table_rows.append("| - | - | - |")
         table = table_header + "\n" + "\n".join(table_rows)
         message = {
             "@type": "MessageCard",

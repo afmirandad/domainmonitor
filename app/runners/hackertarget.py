@@ -11,6 +11,9 @@ def fetch_hackertarget_subdomains(domain: str):
                 sub, _ = line.split(",", 1)
                 found_subs.append(sub.lower())
         return found_subs
+    except requests.exceptions.Timeout as e:
+        print(f"[HackerTarget] Request failed: HTTPSConnectionPool(host='api.hackertarget.com', port=443): Read timed out. (read timeout=30)")
+        return []
     except Exception as e:
         print(f"[HackerTarget] Request failed: {e}")
         return []

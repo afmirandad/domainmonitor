@@ -8,16 +8,15 @@ def scan_subdomain_ports(subdomain, nmap_args=None):
         'ip_address': '',
         'is_active': 'no',
         'open_ports': [],
-        'services': {}
+        'services': {},
+        'vulnerabilities': []
     }
     nmap_found_ports = False
     try:
         nm = nmap.PortScanner()
-        common_ports = "22,25,53,80,443,587,993,995,3306,5432,8080,8443"
-        if nmap_args:
-            result = nm.scan(subdomain, common_ports, arguments=nmap_args)
-        else:
-            result = nm.scan(subdomain, common_ports)
+        # Use top 100 ports
+        nmap_scan_args = nmap_args if nmap_args else "--top-ports 100"
+        result = nm.scan(subdomain, arguments=nmap_scan_args)
         if result['scan']:
             for host_ip, host_data in result['scan'].items():
                 scan_data['ip_address'] = host_ip
@@ -35,6 +34,22 @@ def scan_subdomain_ports(subdomain, nmap_args=None):
                             }
                             scan_data['services'][str(port)] = service_info
                 break
+        # Extra: Run vuln script scan
+        try:
+            vuln_result = nm.scan(subdomain, arguments="-sT --top-ports 100 --script vuln")
+            if vuln_result['scan']:
+                for host_ip, host_data in vuln_result['scan'].items():
+                    if 'tcp' in host_data:
+                        for port, port_info in host_data['tcp'].items():
+                            scripts = port_info.get('script', {})
+                            for script_name, script_output in scripts.items():
+                                scan_data['vulnerabilities'].append({
+                                    'port': port,
+                                    'nmap_script': script_name,
+                                    'output': script_output
+                                })
+        except Exception as e:
+            print(f"[nmap] Vuln script scan failed: {e}")
     except Exception as e:
         print(f"[nmap] Scan failed: {e}")
     if not nmap_found_ports:

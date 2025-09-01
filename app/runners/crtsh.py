@@ -6,7 +6,11 @@ def fetch_crtsh_subdomains(domain: str):
     try:
         res = requests.get(url, timeout=30)
         found_subs = []
-        names = [item["name_value"].lower() for item in res.json()]
+        try:
+            names = [item["name_value"].lower() for item in res.json()]
+        except Exception:
+            print(f"[crt.sh] Request failed: Expecting value: line 1 column 1 (char 0)")
+            return []
         for name in names:
             for sub in name.split('\n'):
                 if sub.endswith(f".{domain}"):
