@@ -13,6 +13,7 @@ import urllib3
 from datetime import datetime, UTC
 from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, DateTime, insert, select, Text, text
 from email_notifier import EmailNotifier
+from app.reporter.report import display_scan_results
 
 # Load environment variables from .env file
 try:
@@ -772,7 +773,7 @@ def main():
 
             # Step 6: Display comprehensive scan results
             logger.info("📊 Step 6: Displaying comprehensive scan results...")
-            display_scan_results(all_scan_results)
+            app.reporter.report.display_scan_results(all_scan_results)
             
             # Step 7: Save/update database with scan data
             logger.info("💾 Step 7: Updating database...")
