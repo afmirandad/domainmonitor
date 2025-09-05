@@ -32,6 +32,7 @@ htmlcov/
 # Distribución / paquetes
 build/
 dist/
+test/
 *.egg-info/
 .eggs/
 
