@@ -1,4 +1,6 @@
 
+import pymysql
+pymysql.install_as_MySQLdb()
 from sqlalchemy import create_engine, MetaData, text
 from app.config.settings import MYSQL_URL, logger
 
