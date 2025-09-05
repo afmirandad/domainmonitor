@@ -1,8 +1,6 @@
-from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData
-from app.config.database import engine
+from sqlalchemy import Table, Column, Integer, String, DateTime
+from app.config.database import engine, metadata
 from datetime import datetime
-
-metadata = MetaData()
 
 ports_table = Table(
     'ports', metadata,

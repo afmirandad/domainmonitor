@@ -11,8 +11,8 @@ def log_section(title):
     logger.info("="*60)
 
 def main():
-    #SubdomainEnumerationService.enumerate_and_store()
-    #PortEnumerationService.enumerate_and_store_ports()
+    SubdomainEnumerationService.enumerate_and_store()
+    PortEnumerationService.enumerate_and_store_ports()
     TeamsReportService.send_ports_report()
 
 if __name__ == "__main__":

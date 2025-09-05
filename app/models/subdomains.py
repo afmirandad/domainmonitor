@@ -1,8 +1,6 @@
-from sqlalchemy import Table, Column, Integer, String, DateTime, Boolean, MetaData
-from app.config.database import engine
+from sqlalchemy import Table, Column, Integer, String, DateTime, Boolean
+from app.config.database import engine, metadata
 from datetime import datetime
-
-metadata = MetaData()
 
 subdomains_table = Table(
     'subdomains', metadata,

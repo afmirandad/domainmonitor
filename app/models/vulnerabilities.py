@@ -1,7 +1,6 @@
-from sqlalchemy import Table, Column, Integer, String, DECIMAL, Text, ForeignKey, MetaData
-from app.config.database import engine
 
-metadata = MetaData()
+from sqlalchemy import Table, Column, Integer, String, DECIMAL, Text, ForeignKey
+from app.config.database import engine, metadata
 
 vulnerabilities_table = Table(
     'vulnerabilities', metadata,
@@ -16,5 +15,4 @@ vulnerabilities_table = Table(
 )
 
 def ensure_vulnerabilities_table():
-    # Crea la tabla si no existe
     metadata.create_all(engine, tables=[vulnerabilities_table])

@@ -29,7 +29,6 @@ class SubdomainEnumerationService:
             if not all_subs:
                 logger.warning(f"No subdomains found for {domain} from any source.")
                 continue
-            # Filtrar subdominios con espacios y limpiar puntos finales
             cleaned_subs = set()
             for sub in validate_subdomains(list(all_subs)):
                 sub_clean = sub.strip().rstrip('.')
@@ -39,7 +38,6 @@ class SubdomainEnumerationService:
             logger.info(f"Valid subdomains for {domain}: {cleaned_subs}")
             with engine.connect() as conn:
                 for sub in cleaned_subs:
-                    # Evitar duplicados con y sin punto final
                     sel = select(subdomains_table.c.id).where(
                         subdomains_table.c.domain == domain,
                         (subdomains_table.c.subdomain == sub) | (subdomains_table.c.subdomain == sub + '.')

@@ -2,14 +2,14 @@ import nmap
 import requests
 import socket
 
+
 def scan_subdomain_ports(subdomain, nmap_args=None):
     """Scan subdomain for open ports and services using nmap + HTTP fallback."""
     scan_data = {
         'ip_address': '',
         'is_active': 'no',
         'open_ports': [],
-        'services': {},
-        'vulnerabilities': []
+        'services': {}
     }
     nmap_found_ports = False
     try:
@@ -34,26 +34,10 @@ def scan_subdomain_ports(subdomain, nmap_args=None):
                             }
                             scan_data['services'][str(port)] = service_info
                 break
-        # Extra: Run vuln script scan
-        try:
-            vuln_result = nm.scan(subdomain, arguments="-sT --top-ports 100 --script vuln")
-            if vuln_result['scan']:
-                for host_ip, host_data in vuln_result['scan'].items():
-                    if 'tcp' in host_data:
-                        for port, port_info in host_data['tcp'].items():
-                            scripts = port_info.get('script', {})
-                            for script_name, script_output in scripts.items():
-                                scan_data['vulnerabilities'].append({
-                                    'port': port,
-                                    'nmap_script': script_name,
-                                    'output': script_output
-                                })
-        except Exception as e:
-            print(f"[nmap] Vuln script scan failed: {e}")
     except Exception as e:
         print(f"[nmap] Scan failed: {e}")
     if not nmap_found_ports:
-        # HTTP fallback
+        # HTTP fallback if nmap did not find open ports
         test_ports = [
             (80, 'http'),
             (443, 'https'),
@@ -86,3 +70,23 @@ def scan_subdomain_ports(subdomain, nmap_args=None):
         if scan_data['open_ports']:
             scan_data['is_active'] = 'up'
     return scan_data
+
+def scan_subdomain_vulnerabilities(subdomain):
+    """Scan subdomain for vulnerabilities using nmap vuln scripts. Only store if output indicates a real finding."""
+    vulnerabilities = []
+    try:
+        nm = nmap.PortScanner()
+        vuln_result = nm.scan(subdomain, arguments="-sT --top-ports 100 --script vuln")
+        if vuln_result['scan']:
+            for host_ip, host_data in vuln_result['scan'].items():
+                if 'tcp' in host_data:
+                    for port, port_info in host_data['tcp'].items():
+                        scripts = port_info.get('script', {})
+                        for script_name, script_output in scripts.items():
+                            # Only store if output does not indicate 'no vulnerability found'
+                            output_lower = script_output.lower()
+                            if not ("couldn't find" in output_lower or "no vulnerabilities found" in output_lower or "not vulnerable" in output_lower):
+                                vulnerabilities.append({'port': port, 'nmap_script': script_name})
+    except Exception as e:
+        print(f"[nmap] Vuln script scan failed: {e}")
+    return vulnerabilities
